@@ -141,14 +141,12 @@ void startConfigPortal() {
   delay(500);
 
   WiFiManager wm;
-  wm.resetSettings();  // ล้าง WiFi เดิม
+  wm.resetSettings();
 
-  // callback ตอนเข้า AP mode
   wm.setAPCallback([](WiFiManager* wm) {
     oledPrint("Config Mode", "192.168.4.1", "OxygenSensor_AP");
   });
 
-  // เปิด portal ค้างไว้จนกว่าจะ config สำเร็จ
   if (!wm.startConfigPortal("OxygenSensor_AP", "12345678")) {
     oledPrint("Config Failed", "Restarting...");
     delay(2000);
@@ -163,7 +161,6 @@ void startConfigPortal() {
 // SETUP
 // ========================================
 void setup() {
-  // Relay pins
   pinMode(RLY1_PIN, OUTPUT);
   pinMode(RLY2_PIN, OUTPUT);
   pinMode(RLY3_PIN, OUTPUT);
@@ -171,10 +168,8 @@ void setup() {
   setRelay(RLY2_PIN, false);
   setRelay(RLY3_PIN, false);
 
-  // BOOT button
   pinMode(BOOT_PIN, INPUT_PULLUP);
 
-  // OLED
   if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
     oled_available = false;
   } else {
@@ -191,8 +186,6 @@ void setup() {
     delay(2000);
   }
 
-  // ตรวจสอบว่ากด BOOT ค้างไว้ตอน boot ไหม
-  // ถ้ากดค้าง → เข้า config portal ทันที
   unsigned long pressStart = millis();
   oledPrint("Hold BOOT 3s", "to reset WiFi...");
   while (digitalRead(BOOT_PIN) == LOW) {
@@ -202,9 +195,8 @@ void setup() {
     }
   }
 
-  // WiFiManager — เชื่อมต่อ WiFi เดิม หรือเปิด portal ถ้าไม่มี
   WiFiManager wm;
-  wm.setConnectTimeout(20);  // timeout 20 วินาที
+  wm.setConnectTimeout(20);
 
   wm.setAPCallback([](WiFiManager* wm) {
     oledPrint("No WiFi saved", "Config Portal:", "192.168.4.1");
@@ -221,12 +213,10 @@ void setup() {
   oledPrint("WiFi Connected!", WiFi.localIP().toString().c_str());
   delay(1500);
 
-  // MQTT
   mqttClient.setServer(mqtt_server, mqtt_port);
   mqttClient.setCallback(mqttCallback);
   connectMQTT();
 
-  // Sensors
   o2Sensor.begin(9600);
   thSensor.begin();
 }
@@ -235,7 +225,6 @@ void setup() {
 // LOOP
 // ========================================
 void loop() {
-  // ตรวจ BOOT button ค้าง 3 วินาที → reset WiFi
   static unsigned long bootPressTime = 0;
   static bool          bootHeld      = false;
 
@@ -246,13 +235,12 @@ void loop() {
     } else if (millis() - bootPressTime >= 3000) {
       startConfigPortal();
       bootHeld = false;
-      ESP.restart();  // restart หลัง config เสร็จ
+      ESP.restart();
     }
   } else {
     bootHeld = false;
   }
 
-  // MQTT
   if (!mqttClient.connected()) connectMQTT();
   mqttClient.loop();
 
@@ -268,7 +256,7 @@ void loop() {
     o2OK = o2Sensor.update();
     delay(200);
     thOK = thSensor.update();
-    if (o2OK) publishStatus();
+    if (o2OK || thOK) publishStatus();  // ✅ แก้ตรงนี้
   }
 
   // สลับหน้า OLED ทุก 3 วินาที
