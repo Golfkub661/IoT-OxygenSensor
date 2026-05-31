@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../oxygen-dashboard"
+		},
+		{
+			"path": "ttgo1"
+		},
+		{
+			"path": "ttgo2"
+		}
+	],
+	"settings": {}
+}
